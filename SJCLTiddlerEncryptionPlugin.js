@@ -1,7 +1,7 @@
 /***
 |Name|SJCLTiddlerEncryptionPlugin|
 |Author|Yanshu Wang|
-|Source||
+|Source|https://github.com/wangyenshu/SJCLTiddlerEncryptionPlugin/blob/main/SJCLTiddlerEncryptionPlugin.js|
 |License|[[Creative Commons Attribution-Share Alike 3.0 License|http://creativecommons.org/licenses/by-sa/3.0/]]|
 |Version|0.1|
 |~CoreVersion|2.4.0|
@@ -416,7 +416,7 @@ store.getSaver().externalizeTiddler = function(store, tiddler) {
 		    var decryptedSHA1 = Crypto.hexSha1Str(tiddler.text);
 		    var password =  GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(passwordPrompt);
 		    if(password) {
-			var encryptedText = window.sjcl.encrypt(tiddler.text, password);
+			var encryptedText = window.sjcl.encrypt(password, tiddler.text);
 			encryptedText = StringToHext_TiddlerEncryptionPlugin(encryptedText);
 			tiddler.text = "Encrypted("+decryptedSHA1+")\n"+encryptedText;
 			// Replace the Tag with the SJCLDecrypt() tag
@@ -465,7 +465,7 @@ function CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler) {
                         // prompt("Decryption request for Tiddler '"+tiddler.title+"'");
 			var password = GetAndSetPasswordForPromptToDecrypt_TiddlerEncryptionPlugin(passwordPrompt);
 			if(password) {
-			    decryptedText = window.sjcl.decrypt(decryptedText, password);
+			    decryptedText = window.sjcl.decrypt(password, decryptedText);
 			    var thisDecryptedSHA1 = Crypto.hexSha1Str(decryptedText);
 			    if(decryptedSHA1 == thisDecryptedSHA1) {
 				tiddler.text = decryptedText;
