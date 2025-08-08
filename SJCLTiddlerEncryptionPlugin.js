@@ -9,6 +9,8 @@
 |Overrides|store.getSaver().externalizeTiddler(), store.getTiddler() and store.getTiddlerText()|
 |Description|Encrypt/Decrypt Tiddlers with a Password key|
 
+!!!!!Description
+This plugin is adapted from TiddlerEncryptionPlugin by Lyall Pearce (http://www.Remotely-Helpful.com/TiddlyWiki/TiddlerEncryptionPlugin.html). It uses Stanford Javascript Crypto Library (SJCL) instead of Tiny Encryption Algorithm in the original TiddlerEncryptionPlugin. 
 !!!!!Usage
 <<<
 * Tag a tiddler with SJCLEncrypt(prompt)
