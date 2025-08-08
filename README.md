@@ -11,7 +11,3 @@ SJCLTiddlerEncryption.js is a nodejs cli version of SJCLTiddlerEncryptionPlugin.
 To Encrypt: node SJCLTiddlerEncryption.js encrypt my-tiddler.tiddler prompt
 
 To Decrypt: node SJCLTiddlerEncryption.js decrypt my-tiddler.tiddler prompt
-
-# Issue
-
-SJCLTiddlerEncryption.js cannot deal with multiline encrypted text properly. The output of encryption is in a single line.
