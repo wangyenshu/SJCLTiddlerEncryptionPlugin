@@ -1,62 +1,27 @@
-// TiddlerEncryption.js
+// SJCLTiddlerEncryption.js
 const fs = require('fs');
 const crypto = require('crypto');
 const readline = require('readline');
 const sjcl = require('sjcl');
 
-// --- Helper Functions from Original Plugin ---
+// --- Helper Functions ---
 
-function strToLongs(s) {
-    const l = new Array(Math.ceil(s.length / 4));
-    for (let i = 0; i < l.length; i++) {
-        l[i] = s.charCodeAt(i * 4) + (s.charCodeAt(i * 4 + 1) << 8) +
-            (s.charCodeAt(i * 4 + 2) << 16) + (s.charCodeAt(i * 4 + 3) << 24);
-    }
-    return l;
-}
-
-function longsToStr(l) {
-    const a = new Array(l.length);
-    for (let i = 0; i < l.length; i++) {
-        a[i] = String.fromCharCode(l[i] & 0xFF, l[i] >>> 8 & 0xFF,
-            l[i] >>> 16 & 0xFF, l[i] >>> 24 & 0xFF);
-    }
-    return a.join('');
-}
-
-function escCtrlCh(str) {
-    return str.replace(/[\0\t\n\v\f\r\xa0'"!]/g, c => `!${c.charCodeAt(0)}!`);
-}
-
-function unescCtrlCh(str) {
-    return str.replace(/!\d\d?\d?!/g, c => String.fromCharCode(c.slice(1, -1)));
-}
-
-function stringToHext(theString) {
-    let theResult = "";
-    for (let i = 0; i < theString.length; i++) {
-        const theHex = theString.charCodeAt(i).toString(16);
-        theResult += theHex.length < 2 ? `0${theHex}` : theHex;
-    }
-    return theResult;
-}
-
-function hexToString(theString) {
-    let theResult = "";
-    for (let i = 0; i < theString.length; i += 2) {
-        theResult += String.fromCharCode(parseInt(theString.substr(i, 2), 16));
-    }
-    return theResult;
-}
-
+/**
+ * Calculates a SHA-1 hash of a string and returns it in uppercase hexadecimal format.
+ * @param {string} str The input string.
+ * @returns {string} The SHA-1 hash in uppercase hex.
+ */
 function hexSha1Str(str) {
     const hash = crypto.createHash('sha1');
     hash.update(str);
     return hash.digest('hex').toUpperCase();
 }
 
-// --- CLI Logic ---
-
+/**
+ * Securely prompts the user for a password via the command line.
+ * @param {string} prompt The message to display to the user.
+ * @returns {Promise<string>} A promise that resolves with the entered password.
+ */
 async function promptPassword(prompt) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -70,18 +35,56 @@ async function promptPassword(prompt) {
     });
 }
 
+/**
+ * Converts a string to its hexadecimal representation, adding newlines every 32 characters.
+ * This function replicates the behavior of the original TiddlyWiki plugin for formatting.
+ * @param {string} theString The input string.
+ * @returns {string} The formatted hexadecimal string.
+ */
+function stringToHext(theString) {
+    let theResult = "";
+    for (let i = 0; i < theString.length; i++) {
+        const theHex = theString.charCodeAt(i).toString(16);
+        theResult += theHex.length < 2 ? `0${theHex}` : theHex;
+        if (i > 0 && (i + 1) % 32 === 0) {
+            theResult += "\n";
+        }
+    }
+    return theResult;
+}
+
+/**
+ * Converts a hex string back to a standard string. This is crucial
+ * because the encrypted content is stored as a hexadecimal representation of a JSON string.
+ * It removes all whitespace and newlines before conversion.
+ * @param {string} theString The input hexadecimal string.
+ * @returns {string} The resulting standard string.
+ */
+function hexToString(theString) {
+    let theResult = "";
+    // Remove all whitespace and newlines from the hex string
+    const sanitizedHex = theString.replace(/\s+/g, '');
+    for (let i = 0; i < sanitizedHex.length; i += 2) {
+        theResult += String.fromCharCode(parseInt(sanitizedHex.substr(i, 2), 16));
+    }
+    return theResult;
+}
+
+// --- CLI Logic ---
+
 async function runCli() {
     const args = process.argv.slice(2);
     const [action, filePath, promptString] = args;
 
     if (!action || !filePath || !promptString) {
-        console.error('❌ Usage: node TiddlerEncryption.js [encrypt|decrypt] <file_path> <prompt_string>');
+        console.error('❌ Usage: node SJCLTiddlerEncryption.js [encrypt|decrypt] <file_path> <prompt_string>');
         process.exit(1);
     }
 
     try {
         const fileContent = fs.readFileSync(filePath, 'utf8');
 
+        // Regex to capture the entire div, tags attribute, and content within <pre>
         const tiddlerRegex = new RegExp(`(<div[^>]*tags=")([^"]+)(".*?>[\\s\\S]*?<pre>)([\\s\\S]*?)(<\\/pre>[\\s\\S]*<\\/div>)`);
         const match = fileContent.match(tiddlerRegex);
 
@@ -105,14 +108,14 @@ async function runCli() {
             if (!tagsArray.includes(encryptTag)) {
                 throw new Error(`Tiddler does not have the tag '${encryptTag}'.`);
             }
-
+            
             originalContent = content.trim();
 
             const decryptedSHA1 = hexSha1Str(originalContent);
-            const encryptedText = sjcl.encrypt(password, originalContent);
-            const encryptedHexText = stringToHext(encryptedText);
-            newContentText = `Encrypted(${decryptedSHA1})\n${encryptedHexText}`;
+            const encryptedJson = sjcl.encrypt(password, originalContent);
+            const encryptedHexText = stringToHext(encryptedJson);
 
+            newContentText = `Encrypted(${decryptedSHA1})\n${encryptedHexText}`;
             newTagsArray = tagsArray.map(tag => tag === encryptTag ? decryptTag : tag);
         } else if (action === 'decrypt') {
             const decryptTag = `SJCLDecrypt(${promptString})`;
@@ -128,20 +131,26 @@ async function runCli() {
             }
 
             const [_, checksum, encryptedHexText] = contentMatch;
+            
+            const encryptedJson = hexToString(encryptedHexText);
 
-            // FIX: Remove all whitespace from the hex string before conversion
-            const cleanedHexText = encryptedHexText.replace(/\s/g, '');
+            try {
+                const decryptedText = sjcl.decrypt(password, encryptedJson);
+                const thisDecryptedSHA1 = hexSha1Str(decryptedText);
 
-            const encryptedText = hexToString(cleanedHexText);
-            const decryptedText = sjcl.decrypt(password, encryptedText);
-            const thisDecryptedSHA1 = hexSha1Str(decryptedText);
-
-            if (checksum !== thisDecryptedSHA1) {
-                throw new Error('Checksum mismatch. Decryption failed or wrong password.');
+                if (checksum !== thisDecryptedSHA1) {
+                    throw new Error('Checksum mismatch. Decryption failed or wrong password.');
+                }
+                
+                newContentText = decryptedText;
+                newTagsArray = tagsArray.map(tag => tag === decryptTag ? encryptTag : tag);
+            } catch (err) {
+                if (err.message.includes('corrupt')) {
+                    throw new Error('Decryption failed. The password might be incorrect or the data is corrupted.');
+                }
+                throw err;
             }
 
-            newContentText = decryptedText;
-            newTagsArray = tagsArray.map(tag => tag === decryptTag ? encryptTag : tag);
         } else {
             throw new Error('Invalid action. Use "encrypt" or "decrypt".');
         }
