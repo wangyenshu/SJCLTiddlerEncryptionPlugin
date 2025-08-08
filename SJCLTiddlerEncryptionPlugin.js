@@ -116,8 +116,6 @@ b){var c={},d;for(d=0;d<b.length;d++)void 0!==a[b[d]]&&(c[b[d]]=a[b[d]]);return 
 window.sjcl = sjcl;
 //}}}
 //{{{
-version.extensions.TiddlerEncryptionPlugin = {major: 3, minor: 2, revision: 2, date: new Date(2012,05,17)};
-
 // where I cache the passwords - for want of a better place.
 config.encryptionPasswords = new Array();
 config.encryptionReEnterPasswords = false;
