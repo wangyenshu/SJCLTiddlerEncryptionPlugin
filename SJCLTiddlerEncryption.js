@@ -108,14 +108,13 @@ async function runCli() {
             if (!tagsArray.includes(encryptTag)) {
                 throw new Error(`Tiddler does not have the tag '${encryptTag}'.`);
             }
-            
+         
             originalContent = content.trim();
 
-            const decryptedSHA1 = hexSha1Str(originalContent);
             const encryptedJson = sjcl.encrypt(password, originalContent);
             const encryptedHexText = stringToHext(encryptedJson);
 
-            newContentText = `Encrypted(${decryptedSHA1})\n${encryptedHexText}`;
+            newContentText = encryptedHexText;
             newTagsArray = tagsArray.map(tag => tag === encryptTag ? decryptTag : tag);
         } else if (action === 'decrypt') {
             const decryptTag = `SJCLDecrypt(${promptString})`;
@@ -124,24 +123,13 @@ async function runCli() {
             if (!tagsArray.includes(decryptTag)) {
                 throw new Error(`Tiddler does not have the tag '${decryptTag}'.`);
             }
-
-            const contentMatch = content.trim().match(/^Encrypted\((.*?)\)\n([\s\S]*)/);
-            if (!contentMatch) {
-                throw new Error('Encrypted content is not in the expected format.');
-            }
-
-            const [_, checksum, encryptedHexText] = contentMatch;
-            
+         
+            const encryptedHexText = content.trim();
             const encryptedJson = hexToString(encryptedHexText);
 
             try {
                 const decryptedText = sjcl.decrypt(password, encryptedJson);
-                const thisDecryptedSHA1 = hexSha1Str(decryptedText);
-
-                if (checksum !== thisDecryptedSHA1) {
-                    throw new Error('Checksum mismatch. Decryption failed or wrong password.');
-                }
-                
+             
                 newContentText = decryptedText;
                 newTagsArray = tagsArray.map(tag => tag === decryptTag ? encryptTag : tag);
             } catch (err) {

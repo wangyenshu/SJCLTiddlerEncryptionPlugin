@@ -3,14 +3,14 @@
 |Author|Yanshu Wang|
 |Source|https://github.com/wangyenshu/SJCLTiddlerEncryptionPlugin/blob/main/SJCLTiddlerEncryptionPlugin.js|
 |License|[[Creative Commons Attribution-Share Alike 3.0 License|http://creativecommons.org/licenses/by-sa/3.0/]]|
-|Version|0.1|
+|Version|0.2|
 |~CoreVersion|2.4.0|
 |Requires|None|
 |Overrides|store.getSaver().externalizeTiddler(), store.getTiddler() and store.getTiddlerText()|
 |Description|Encrypt/Decrypt Tiddlers with a Password key|
 
 !!!!!Description
-This plugin is adapted from TiddlerEncryptionPlugin by Lyall Pearce (http://www.Remotely-Helpful.com/TiddlyWiki/TiddlerEncryptionPlugin.html). It uses Stanford Javascript Crypto Library (SJCL) instead of Tiny Encryption Algorithm in the original TiddlerEncryptionPlugin. 
+This plugin is adapted from TiddlerEncryptionPlugin by Lyall Pearce (http://www.Remotely-Helpful.com/TiddlyWiki/TiddlerEncryptionPlugin.html). It uses Stanford Javascript Crypto Library (SJCL) instead of Tiny Encryption Algorithm in the original TiddlerEncryptionPlugin and the insecure SHA1 checksum is removed. 
 !!!!!Usage
 <<<
 * Tag a tiddler with SJCLEncrypt(prompt)
@@ -29,7 +29,7 @@ This plugin is adapted from TiddlerEncryptionPlugin by Lyall Pearce (http://www.
 * Errors are reported via diagnostic messages.
 ** Empty passwords, on save, will result in the tiddler being saved unencrypted - this should only occur with new tiddlers, decrypted tiddlers or with tiddlers who have had their 'prompt' tag changed.
 ** Encrypted tiddlers know if they are decrypted successfully - failure to decrypt a tiddler will ''not'' lose your data.
-** Editing of an encrypted (that has not been unencrypted) tiddler will result in loss of that tiddler as the SHA1 checksums will no longer match, upon decryption. To this end, it is best that you do not check the option. You can, however edit an encrypted tiddler tag list - just do ''not'' change the tiddler contents.
+** Editing of an encrypted (that has not been unencrypted) tiddler will result in loss of that tiddler as the checksums will no longer match, upon decryption. To this end, it is best that you do not check the option. You can, however edit an encrypted tiddler tag list - just do ''not'' change the tiddler contents.
 ** To change the password on a Tiddler, change the SJCLEncrypt('prompt') tag to a new prompt value, after decrypting the tiddler.
 ** You can edit the tags of an encrypted tiddler, so long as you do not edit the text.
 ** To change the password for all tiddlers of a particular prompt, use the {{{<<EncryptionChangePassword ["button text" ["tooltip text" ["prompt string" ["accessKey"]]]]>>}}} macro.
@@ -127,60 +127,60 @@ if(config.options.chkShowDecryptButtonInContent == undefined) config.options.chk
 config.macros.EncryptionChangePassword = {};
 config.macros.EncryptionChangePassword.handler = function(place,macroName,params,wikifier,paramString,tiddler) {
     var theButton = createTiddlyButton(place,
-				       (params[0] && params[0].length > 0) ? params[0] : "Change Passwords", 
-				       (params[1] && params[1].length > 0) ? params[1] : "Change Passwords" + (params[2] ? " for prompt "+params[2] : ""), 
-				       onClickEncryptionChangePassword,
-				       null,
-				       null,
-				       params[3]);
+        (params[0] && params[0].length > 0) ? params[0] : "Change Passwords", 
+        (params[1] && params[1].length > 0) ? params[1] : "Change Passwords" + (params[2] ? " for prompt "+params[2] : ""), 
+        onClickEncryptionChangePassword,
+        null,
+        null,
+        params[3]);
     if(params[2] && params[2].length > 0) {
-	theButton.setAttribute("promptString", params[2]);
+    theButton.setAttribute("promptString", params[2]);
     }
 };
 
 config.macros.EncryptionDecryptAll = {};
 config.macros.EncryptionDecryptAll.handler = function(place,macroName,params,wikifier,paramString,tiddler) {
     var theButton = createTiddlyButton(place,
-				       (params[0] && params[0].length > 0) ? params[0] : "Decrypt All", 
-				       (params[1] && params[1].length > 0) ? params[1] : "Decrypt All Tiddlers" + ((params[2] && params[2].length > 0) ? " for prompt "+params[2] : " for a given 'prompt string'"), 
-				       onClickEncryptionDecryptAll,
-				       null,
-				       null,
-				       params[3]);
+        (params[0] && params[0].length > 0) ? params[0] : "Decrypt All", 
+        (params[1] && params[1].length > 0) ? params[1] : "Decrypt All Tiddlers" + ((params[2] && params[2].length > 0) ? " for prompt "+params[2] : " for a given 'prompt string'"), 
+        onClickEncryptionDecryptAll,
+        null,
+        null,
+        params[3]);
     if(params[2] && params[2].length > 0) {
-	theButton.setAttribute("promptString", params[2]);
+    theButton.setAttribute("promptString", params[2]);
     }
 };
 
 config.macros.EncryptionDecryptThis = {};
 config.macros.EncryptionDecryptThis.handler = function(place,macroName,params,wikifier,paramString,tiddler) {
     var theButton = createTiddlyButton(place,
-				       (params[0] && params[0].length > 0) ? params[0] : "Decrypt", 
-				       (params[1] && params[1].length > 0) ? params[1] : "Decrypt this Tiddler", 
-				       onClickEncryptionDecryptThis,
-				       null,
-				       null,
-				       params[3]);
+        (params[0] && params[0].length > 0) ? params[0] : "Decrypt", 
+        (params[1] && params[1].length > 0) ? params[1] : "Decrypt this Tiddler", 
+        onClickEncryptionDecryptThis,
+        null,
+        null,
+        params[3]);
     if(params[2] && params[2].length > 0) {
-	theButton.setAttribute("theTiddler", params[2]);
+    theButton.setAttribute("theTiddler", params[2]);
     }
 };
 // toolbar button to decrypt tiddlers.
 config.commands.decryptThis = {
-  text: "decrypt",
-  tooltip: "Decrypt this tiddler",
-  isEnabled : function(tiddler) {
-	// Only show decrypt button if tiddler is tagged as SJCLDecrypt(
-	if(tiddler.tags.join().indexOf('SJCLDecrypt(') == -1)  {
-	    return false;
-	} else {
-	    return true;
-	}
-    },	
-  handler: function(event, src, title) {
-	encryptionGetAndDecryptTiddler(title);
-	return false; 
-    }
+    text: "decrypt",
+    tooltip: "Decrypt this tiddler",
+    isEnabled : function(tiddler) {
+        // Only show decrypt button if tiddler is tagged as SJCLDecrypt(
+        if(tiddler.tags.join().indexOf('SJCLDecrypt(') == -1)  {
+            return false;
+        } else {
+            return true;
+        }
+        },  
+    handler: function(event, src, title) {
+        encryptionGetAndDecryptTiddler(title);
+        return false; 
+        }
 };
 // core version 2.4 or above get a 'decrypt' button in the toolbar.
 if(config.shadowTiddlers && config.shadowTiddlers.ToolbarCommands  && config.shadowTiddlers.ToolbarCommands.indexOf('decryptThis') == -1) {
@@ -195,24 +195,24 @@ if(config.shadowTiddlers && config.shadowTiddlers.ToolbarCommands  && config.sha
 function onClickEncryptionChangePassword(eventObject) {
     var promptString;
     if(!promptString && this.getAttribute) {
-	promptString = this.getAttribute("promptString");
+    promptString = this.getAttribute("promptString");
     }
     // I do call this function directly
     if(!promptString && typeof(eventObject) == "string") {
-	promptString = eventObject;
+    promptString = eventObject;
     }
     if(!promptString) {
-	promptString = prompt("Enter 'prompt string' to change password for:","");
+    promptString = prompt("Enter 'prompt string' to change password for:","");
     }
     if(!promptString) {
-	return;
+    return;
     }
     if(! config.encryptionPasswords[promptString]) {
-	var changePasswordContext = {changePasswordPromptString: promptString,
-				     callbackFunction: MyChangePasswordPromptCallback_TiddlerEncryptionPlugin};
-	MyPrompt_TiddlerEncryptionPlugin(promptString,"",changePasswordContext);
-	return;
-	// Callback function will re-invoke this function
+    var changePasswordContext = {changePasswordPromptString: promptString,
+            callbackFunction: MyChangePasswordPromptCallback_TiddlerEncryptionPlugin};
+    MyPrompt_TiddlerEncryptionPlugin(promptString,"",changePasswordContext);
+    return;
+    // Callback function will re-invoke this function
     }
 
     // Decrypt ALL tiddlers for that prompt
@@ -235,7 +235,7 @@ function MyChangePasswordPromptCallback_TiddlerEncryptionPlugin(context) {
 function onClickEncryptionDecryptThis() {
     var theTiddler = this.getAttribute("theTiddler");
     if(!theTiddler) {
-	return;
+    return;
     }
     encryptionGetAndDecryptTiddler(theTiddler);
     return;
@@ -244,14 +244,14 @@ function onClickEncryptionDecryptThis() {
 function encryptionGetAndDecryptTiddler(title) {
     config.encryptionReEnterPasswords = true;
     try {
-	theTiddler = store.getTiddler(title);
-	config.encryptionReEnterPasswords = false;
-	story.refreshAllTiddlers();
+    theTiddler = store.getTiddler(title);
+    config.encryptionReEnterPasswords = false;
+    story.refreshAllTiddlers();
     } catch (e) {
-	if(e == "DecryptionFailed") {
-	    displayMessage("Decryption failed");
-	    return;
-	}
+    if(e == "DecryptionFailed") {
+        displayMessage("Decryption failed");
+        return;
+    }
     } // catch
     return;
 };
@@ -261,14 +261,14 @@ function encryptionGetAndDecryptTiddler(title) {
 function onClickEncryptionDecryptAll(eventObject) {
     var promptString;
     if(!promptString && this.getAttribute) {
-	promptString = this.getAttribute("promptString");
+    promptString = this.getAttribute("promptString");
     }
     // I do call this function directly
     if(!promptString && typeof(eventObject) == "string") {
-	promptString = eventObject;
+    promptString = eventObject;
     }
     if(!promptString) {
-	promptString = "";
+    promptString = "";
     }
 
     // Loop through all tiddlers, looking to see if there are any SJCLDecrypt(promptString) tagged tiddlers
@@ -284,55 +284,55 @@ function onClickEncryptionDecryptAll(eventObject) {
     config.encryptionReEnterPasswords = true; 
     var promptGenerated = false;
     store.forEachTiddler(function(store,tiddler) {
-	    // Note, there is no way to stop the forEachTiddler iterations
-	    if(!promptGenerated && tiddler && tiddler.tags) {
-		for(var ix=0; ix<tiddler.tags.length && !promptGenerated; ix++) {
-		    if(tiddler.tags[ix].indexOf(tagToSearchFor) == 0) {
-			var tag = tiddler.tags[ix];
-			var lastBracket=tag.lastIndexOf(")");
-			if(lastBracket >= 0) {
-			    // Ok, tagged with SJCLEncrypt(passwordPrompt)
-			    // extract the passwordPrompt name
-			    var passwordPromptString=tag.substring(12,lastBracket);
-			    if(!config.encryptionPasswords[passwordPromptString]) {
-				// no password cached, prompt and cache it, rather than decryptAll
-				// callback from prompting form will resume decryptAll attempt.
-				var decryptAllContext = {decryptAllPromptString: promptString,
-							 callbackFunction: MyDecryptAllPromptCallback_TiddlerEncryptionPlugin};
-				MyPrompt_TiddlerEncryptionPlugin(passwordPromptString,"",decryptAllContext);
-				promptGenerated = true;
-			    } // if(!config.encryptionPasswords
-			} // if(lastBracket
-		    } // if(tiddler.tags[ix]..
-		} // for
-	    } // if
-	}); // store.forEachTiddler
+        // Note, there is no way to stop the forEachTiddler iterations
+        if(!promptGenerated && tiddler && tiddler.tags) {
+        for(var ix=0; ix<tiddler.tags.length && !promptGenerated; ix++) {
+            if(tiddler.tags[ix].indexOf(tagToSearchFor) == 0) {
+            var tag = tiddler.tags[ix];
+            var lastBracket=tag.lastIndexOf(")");
+            if(lastBracket >= 0) {
+                // Ok, tagged with SJCLEncrypt(passwordPrompt)
+                // extract the passwordPrompt name
+                var passwordPromptString=tag.substring(12,lastBracket);
+                if(!config.encryptionPasswords[passwordPromptString]) {
+                // no password cached, prompt and cache it, rather than decryptAll
+                // callback from prompting form will resume decryptAll attempt.
+                var decryptAllContext = {decryptAllPromptString: promptString,
+                                 callbackFunction: MyDecryptAllPromptCallback_TiddlerEncryptionPlugin};
+                MyPrompt_TiddlerEncryptionPlugin(passwordPromptString,"",decryptAllContext);
+                promptGenerated = true;
+                } // if(!config.encryptionPasswords
+            } // if(lastBracket
+            } // if(tiddler.tags[ix]..
+        } // for
+        } // if
+    }); // store.forEachTiddler
     // If we get here, all passwords have been cached.
     if(!promptGenerated) {
-	config.encryptionReEnterPasswords = false;
-	// Now do the decrypt all functionality
-	try {
-	    store.forEachTiddler(function(store,tiddler) {
-		    // Note, there is no way to stop the forEachTiddler iterations
-		    if(tiddler && tiddler.tags) {
-			for(var ix=0; ix<tiddler.tags.length; ix++) {
-			    if(tiddler.tags[ix].indexOf(tagToSearchFor) == 0) {
-				try {
-				    CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler);
-				} catch (e) {
-				    displayMessage("Decryption of '"+tiddler.title+"' failed.");
-				    // throw e;
-				}
-			    } // if(tiddler.tags
-			} // for
-		    } // if
-		}); // store.forEachTiddler
-	    displayMessage("All tiddlers" + (promptString != "" ? " for '"+promptString+"'" : "") + " have been decrypted");
-	} catch (e) {
-	    if(e == "DecryptionFailed") {
-		return;
-	    }
-	} // catch
+    config.encryptionReEnterPasswords = false;
+    // Now do the decrypt all functionality
+    try {
+        store.forEachTiddler(function(store,tiddler) {
+            // Note, there is no way to stop the forEachTiddler iterations
+            if(tiddler && tiddler.tags) {
+            for(var ix=0; ix<tiddler.tags.length; ix++) {
+                if(tiddler.tags[ix].indexOf(tagToSearchFor) == 0) {
+                try {
+                    CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler);
+                } catch (e) {
+                    displayMessage("Decryption of '"+tiddler.title+"' failed.");
+                    // throw e;
+                }
+                } // if(tiddler.tags
+            } // for
+            } // if
+        }); // store.forEachTiddler
+        displayMessage("All tiddlers" + (promptString != "" ? " for '"+promptString+"'" : "") + " have been decrypted");
+    } catch (e) {
+        if(e == "DecryptionFailed") {
+        return;
+        }
+    } // catch
     }
     return;
 };
@@ -358,32 +358,32 @@ saveChanges = function(onlyIfDirty,tiddlers) {
     config.encryptionReEnterPasswords = true; 
     var promptGenerated = false;
     store.forEachTiddler(function(store,tiddler) {
-	    if(!promptGenerated && tiddler && tiddler.tags) {
-		for(var ix=0; ix<tiddler.tags.length && !promptGenerated; ix++) {
-		    if(tiddler.tags[ix].indexOf("SJCLEncrypt(") == 0) {
-			var tag = tiddler.tags[ix];
-			var lastBracket=tag.lastIndexOf(")");
-			if(lastBracket >= 0) {
-			    // Ok, tagged with SJCLEncrypt(passwordPrompt)
-			    // extract the passwordPrompt name
-			    var passwordPrompt=tag.substring(12,lastBracket);
-			    if(!config.encryptionPasswords[passwordPrompt]) {
-				// no password cached, prompt and cache it, rather than save
-				var saveContext = {onlyIfDirty: onlyIfDirty, 
-						   tiddlers: tiddlers, 
-				                   callbackFunction: MySavePromptCallback_TiddlerEncryptionPlugin};
-				MyPrompt_TiddlerEncryptionPlugin(passwordPrompt,"",saveContext);
-				promptGenerated = true;
-			    } // if(!config.encryptionPasswords
-			} // if(lastBracket
-		    } // if(tiddler.tags[ix]..
-		} // for
-	    } // if
-	}); // store.forEachTiddler
+        if(!promptGenerated && tiddler && tiddler.tags) {
+        for(var ix=0; ix<tiddler.tags.length && !promptGenerated; ix++) {
+            if(tiddler.tags[ix].indexOf("SJCLEncrypt(") == 0) {
+            var tag = tiddler.tags[ix];
+            var lastBracket=tag.lastIndexOf(")");
+            if(lastBracket >= 0) {
+                // Ok, tagged with SJCLEncrypt(passwordPrompt)
+                // extract the passwordPrompt name
+                var passwordPrompt=tag.substring(12,lastBracket);
+                if(!config.encryptionPasswords[passwordPrompt]) {
+                // no password cached, prompt and cache it, rather than save
+                var saveContext = {onlyIfDirty: onlyIfDirty, 
+                                 tiddlers: tiddlers, 
+                                         callbackFunction: MySavePromptCallback_TiddlerEncryptionPlugin};
+                MyPrompt_TiddlerEncryptionPlugin(passwordPrompt,"",saveContext);
+                promptGenerated = true;
+                } // if(!config.encryptionPasswords
+            } // if(lastBracket
+            } // if(tiddler.tags[ix]..
+        } // for
+        } // if
+    }); // store.forEachTiddler
     // If we get here, all passwords have been cached.
     if(!promptGenerated) {
-	config.encryptionReEnterPasswords = false;
-	saveChanges_TiddlerEncryptionPlugin(onlyIfDirty,tiddlers);
+    config.encryptionReEnterPasswords = false;
+    saveChanges_TiddlerEncryptionPlugin(onlyIfDirty,tiddlers);
     }
     return;
 }
@@ -404,41 +404,40 @@ store.getSaver().externalizeTiddler = function(store, tiddler) {
     // Ok, got the tiddler, track down the passwordPrompt in the tags.
     // track down the SJCLEncrypt(passwordPrompt) tag
     if(tiddler && tiddler.tags) {
-	for(var g=0; g<tiddler.tags.length; g++) {
-	    var tag = tiddler.tags[g];
-	    if(tag.indexOf("SJCLEncrypt(") == 0) {
-		var lastBracket=tag.lastIndexOf(")");
-		if(lastBracket >= 0) {
-		    // Ok, tagged with SJCLEncrypt(passwordPrompt)
-		    // extract the passwordPrompt name
-		    var passwordPrompt=tag.substring(12,lastBracket);
-		    // Ok, SJCLEncrypt this tiddler!
-		    var decryptedSHA1 = Crypto.hexSha1Str(tiddler.text);
-		    var password =  GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(passwordPrompt);
-		    if(password) {
-			var encryptedText = window.sjcl.encrypt(password, tiddler.text);
-			encryptedText = StringToHext_TiddlerEncryptionPlugin(encryptedText);
-			tiddler.text = "Encrypted("+decryptedSHA1+")\n"+encryptedText;
-			// Replace the Tag with the SJCLDecrypt() tag
-			tiddler.tags[g]="SJCLDecrypt("+passwordPrompt+")";
-			// prevent searches on encrypted tiddlers, still nice to search on title though.
-			if(config.options.chkExcludeEncryptedFromSearch == true) {
-			    tiddler.tags.push("excludeSearch");
-			}
-			// prevent lists of encrypted tiddlers
-			if(config.options.chkExcludeEncryptedFromLists == true) {
-			    tiddler.tags.push("excludeLists");
-			}
-			tiddler.changed();
-			// let the store know it's dirty
-			store.setDirty(tiddler.title, true);
-		    } else {
-			// do not encrypt - no password entered
-		    }
-		    break;
-		} // if (lastBracket...
-	    } // if(tag.indexOf(...
-	} // for(var g=0;...
+    for(var g=0; g<tiddler.tags.length; g++) {
+        var tag = tiddler.tags[g];
+        if(tag.indexOf("SJCLEncrypt(") == 0) {
+        var lastBracket=tag.lastIndexOf(")");
+        if(lastBracket >= 0) {
+            // Ok, tagged with SJCLEncrypt(passwordPrompt)
+            // extract the passwordPrompt name
+            var passwordPrompt=tag.substring(12,lastBracket);
+            // Ok, SJCLEncrypt this tiddler!
+            var password =  GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(passwordPrompt);
+            if(password) {
+            var encryptedText = window.sjcl.encrypt(password, tiddler.text);
+            encryptedText = StringToHext_TiddlerEncryptionPlugin(encryptedText);
+            tiddler.text = encryptedText;
+            // Replace the Tag with the SJCLDecrypt() tag
+            tiddler.tags[g]="SJCLDecrypt("+passwordPrompt+")";
+            // prevent searches on encrypted tiddlers, still nice to search on title though.
+            if(config.options.chkExcludeEncryptedFromSearch == true) {
+                tiddler.tags.push("excludeSearch");
+            }
+            // prevent lists of encrypted tiddlers
+            if(config.options.chkExcludeEncryptedFromLists == true) {
+                tiddler.tags.push("excludeLists");
+            }
+            tiddler.changed();
+            // let the store know it's dirty
+            store.setDirty(tiddler.title, true);
+            } else {
+            // do not encrypt - no password entered
+            }
+            break;
+        } // if (lastBracket...
+        } // if(tag.indexOf(...
+    } // for(var g=0;...
     } // if(tiddler.tags...
     
     // Then, finally, do the save by calling the function we override.
@@ -448,58 +447,48 @@ store.getSaver().externalizeTiddler = function(store, tiddler) {
 
 function CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler) {
     if(tiddler && tiddler.tags) {
-	for(var g=0; g<tiddler.tags.length; g++) {
-	    var tag = tiddler.tags[g];
-	    if(tag.indexOf("SJCLDecrypt(") == 0) {
-		var lastBracket=tag.lastIndexOf(")");
-		if(lastBracket >= 0) {
-		    if(tiddler.text.substr(0,10) == "Encrypted(") {
-			var closingSHA1Bracket = tiddler.text.indexOf(")");
-			var decryptedSHA1 = tiddler.text.substring(10, closingSHA1Bracket);
-			// Ok, tagged with SJCLDecrypt(passwordPrompt)
-			// extract the passwordPrompt name
-			var passwordPrompt=tag.substring(12,lastBracket);
-			// Ok, SJCLDecrypt this tiddler!
-			var decryptedText = tiddler.text.substr(closingSHA1Bracket+2);
-			decryptedText = HexToString_TiddlerEncryptionPlugin(decryptedText);
-                        // prompt("Decryption request for Tiddler '"+tiddler.title+"'");
-			var password = GetAndSetPasswordForPromptToDecrypt_TiddlerEncryptionPlugin(passwordPrompt);
-			if(password) {
-			    decryptedText = window.sjcl.decrypt(password, decryptedText);
-			    var thisDecryptedSHA1 = Crypto.hexSha1Str(decryptedText);
-			    if(decryptedSHA1 == thisDecryptedSHA1) {
-				tiddler.text = decryptedText;
-				// Replace the Tag with the SJCLEncrypt() tag
-				tiddler.tags[g]="SJCLEncrypt("+passwordPrompt+")";
-				if(tiddler.tags[tiddler.tags.length-1] == 'excludeLists') {
-				    // Remove exclude lists only if it's the last entry
-				    // as it's automatically put there by encryption
-				    tiddler.tags.length--;
-				}
-				if(tiddler.tags[tiddler.tags.length-1] == 'excludeSearch') {
-				    // Remove exclude search only if it's the last entry
-				    // as it's automatically put there by encryption
-				    tiddler.tags.length--;
-				}
-				tiddler.changed();
-			    } else {
-				// Did not decrypt, discard the password from the cache
-				config.encryptionPasswords[passwordPrompt] = null;
-				config.encryptionReEnterPasswords = false;
-				throw "DecryptionFailed";
-			    }
-			} else {
-			    // no password supplied, dont bother trying to decrypt
-			    config.encryptionReEnterPasswords = false;
-			    throw "DecryptionFailed";
-			}
-		    } else {
-			// Tagged as encrypted but not expected format, just leave it unchanged
-		    }
-		    break; // out of for loop
-		} // if (lastBracket...
-	    } // if(tag.indexOf(...
-	} // for(var g=0;...
+    for(var g=0; g<tiddler.tags.length; g++) {
+        var tag = tiddler.tags[g];
+        if(tag.indexOf("SJCLDecrypt(") == 0) {
+        var lastBracket=tag.lastIndexOf(")");
+        if(lastBracket >= 0) {
+            if(tiddler.text.substr(0,10) != "Encrypted(") {
+            // Ok, tagged with SJCLDecrypt(passwordPrompt)
+            // extract the passwordPrompt name
+            var passwordPrompt=tag.substring(12,lastBracket);
+            // Ok, SJCLDecrypt this tiddler!
+            var decryptedText = tiddler.text;
+            decryptedText = HexToString_TiddlerEncryptionPlugin(decryptedText);
+            // prompt("Decryption request for Tiddler '"+tiddler.title+"'");
+            var password = GetAndSetPasswordForPromptToDecrypt_TiddlerEncryptionPlugin(passwordPrompt);
+            if(password) {
+                decryptedText = window.sjcl.decrypt(password, decryptedText);
+                tiddler.text = decryptedText;
+                // Replace the Tag with the SJCLEncrypt() tag
+                tiddler.tags[g]="SJCLEncrypt("+passwordPrompt+")";
+                if(tiddler.tags[tiddler.tags.length-1] == 'excludeLists') {
+                    // Remove exclude lists only if it's the last entry
+                    // as it's automatically put there by encryption
+                    tiddler.tags.length--;
+                }
+                if(tiddler.tags[tiddler.tags.length-1] == 'excludeSearch') {
+                    // Remove exclude search only if it's the last entry
+                    // as it's automatically put there by encryption
+                    tiddler.tags.length--;
+                }
+                tiddler.changed();
+            } else {
+                // no password supplied, dont bother trying to decrypt
+                config.encryptionReEnterPasswords = false;
+                throw "DecryptionFailed";
+            }
+            } else {
+            // Tagged as encrypted but not expected format, just leave it unchanged
+            }
+            break; // out of for loop
+        } // if (lastBracket...
+        } // if(tag.indexOf(...
+    } // for(var g=0;...
     } // if (tiddler && tags)
     return tiddler;
 };
@@ -508,24 +497,24 @@ store.getTiddler_TiddlerEncryptionPlugin = store.getTiddler;
 store.getTiddler = function(title) {
     var tiddler = store.getTiddler_TiddlerEncryptionPlugin(title);
     if(tiddler) { // shadow tiddlers are not expected to be encrypted.
-	try {
-	    return CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler);
-	} catch (e) {
-	    if (config.options.chkShowDecryptButtonInContent == true) {
-		if(e == "DecryptionFailed") {
-		    var tiddler = store.getTiddler("DecryptionFailed");
-		    if(!tiddler) {
-			tiddler = new Tiddler();
-			tiddler.set(title,
-				    "<<EncryptionDecryptThis \"Decrypt\" \"Decrypt this tiddler\" \""+title+"\">>",
-				    config.views.wikified.shadowModifier,
-				    version.date,[],version.date);
-		    } 
-		    return tiddler;
-		} // if(e)
-	    }
-	    return(tiddler);
-	} // catch
+    try {
+        return CheckTiddlerForDecryption_TiddlerEncryptionPlugin(tiddler);
+    } catch (e) {
+        if (config.options.chkShowDecryptButtonInContent == true) {
+        if(e == "DecryptionFailed") {
+            var tiddler = store.getTiddler("DecryptionFailed");
+            if(!tiddler) {
+            tiddler = new Tiddler();
+            tiddler.set(title,
+                "<<EncryptionDecryptThis \"Decrypt\" \"Decrypt this tiddler\" \""+title+"\">>",
+                config.views.wikified.shadowModifier,
+                version.date,[],version.date);
+            } 
+            return tiddler;
+        } // if(e)
+        }
+        return(tiddler);
+    } // catch
     } // if(tiddler) {
     return null;
 };
@@ -535,7 +524,7 @@ store.getTiddlerText = function(title,defaultText) {
     // Simply retrieve the tiddler, normally, if it requires decryption, it will be decrypted
     var decryptedTiddler = store.getTiddler(title);
     if(decryptedTiddler) {
-	return decryptedTiddler.text;
+    return decryptedTiddler.text;
     }
     //Ok, rather than duplicate all the core code, the above code should fail if we reach here
     // let the core code take over.
@@ -546,7 +535,7 @@ store.getTiddlerText = function(title,defaultText) {
 // Can return null if the user enters nothing.
 function MyPrompt_TiddlerEncryptionPlugin(promptString,defaultValue,context) {
     if(!context) {
-	context = {};
+    context = {};
     }
     context.passwordPrompt = promptString;
     PasswordPrompt.prompt(MyPromptCallback_TiddlerEncryptionPlugin, context);
@@ -555,26 +544,26 @@ function MyPrompt_TiddlerEncryptionPlugin(promptString,defaultValue,context) {
 
 function MyPromptCallback_TiddlerEncryptionPlugin(context) {
     if(context.callbackFunction) {
-	context.callbackFunction(context);
+    context.callbackFunction(context);
     } else {
-	config.encryptionPasswords[context.passwordPrompt] = context.password;
-	story.refreshAllTiddlers(true);
+    config.encryptionPasswords[context.passwordPrompt] = context.password;
+    story.refreshAllTiddlers(true);
     }
     return;
 }
 
 function GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(promptString) {
     if(!config.encryptionPasswords[promptString]) {
-	config.encryptionPasswords[promptString] = MyPrompt_TiddlerEncryptionPlugin(promptString, "");
+    config.encryptionPasswords[promptString] = MyPrompt_TiddlerEncryptionPlugin(promptString, "");
     }
     return config.encryptionPasswords[promptString]; // may be null, prompt can be cancelled.
 }
 
 function GetAndSetPasswordForPromptToDecrypt_TiddlerEncryptionPlugin(promptString) {
     if(config.encryptionReEnterPasswords) {
-	return GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(promptString);
+    return GetAndSetPasswordForPrompt_TiddlerEncryptionPlugin(promptString);
     } else {
-	return config.encryptionPasswords[promptString];
+    return config.encryptionPasswords[promptString];
     }
 }
 
@@ -582,14 +571,14 @@ function GetAndSetPasswordForPromptToDecrypt_TiddlerEncryptionPlugin(promptStrin
 function StringToHext_TiddlerEncryptionPlugin(theString) {
     var theResult = "";
     for(var i=0; i<theString.length; i++) {
-	var theHex = theString.charCodeAt(i).toString(16);
-	if(theHex.length<2) {
-	    theResult += "0"+theHex;
-	} else {
-	    theResult += theHex;
-	}
-	if(i && i % 32 == 0)
-	    theResult += "\n";
+    var theHex = theString.charCodeAt(i).toString(16);
+    if(theHex.length<2) {
+        theResult += "0"+theHex;
+    } else {
+        theResult += theHex;
+    }
+    if(i && i % 32 == 0)
+        theResult += "\n";
     }
     return theResult;
 }
@@ -597,11 +586,11 @@ function StringToHext_TiddlerEncryptionPlugin(theString) {
 function HexToString_TiddlerEncryptionPlugin(theString) {
     var theResult = "";
     for(var i=0; i<theString.length; i+=2) {
-	if(theString.charAt(i) == "\n") {
-	    i--;	// cause us to skip over the newline and resume
-	    continue;
-	}
-	theResult += String.fromCharCode(parseInt(theString.substr(i, 2),16));
+    if(theString.charAt(i) == "\n") {
+        i--;   // cause us to skip over the newline and resume
+        continue;
+    }
+    theResult += String.fromCharCode(parseInt(theString.substr(i, 2),16));
     }
     return theResult;
 }
@@ -609,83 +598,83 @@ function HexToString_TiddlerEncryptionPlugin(theString) {
 // Heavily leveraged from http://trac.tiddlywiki.org/browser/Trunk/contributors/SaqImtiaz/verticals/Hesperian/PasswordPromptPlugin.js  Revision 5635
 //
 PasswordPrompt ={
-  prompt : function(callback,context){
-	if (!context) {
-	    context = {};
-	}
-	var box = createTiddlyElement(document.getElementById("contentWrapper"),'div','passwordPromptBox');
-	box.innerHTML = store.getTiddlerText('PasswordPromptTemplate');
-	box.style.position = 'absolute';
-	this.center(box);
-	document.getElementById('promptDisplayField').value = context.passwordPrompt;
-	var passwordInputField = document.getElementById('passwordInputField');
-	passwordInputField.onkeyup = function(ev) {
-	    var e = ev || window.event;
-	    if(e.keyCode == 10 || e.keyCode == 13) { // Enter
-		PasswordPrompt.submit(callback, context);
-	    }
-	};
-	passwordInputField.focus();
-	document.getElementById('passwordPromptSubmitBtn').onclick = function(){PasswordPrompt.submit(callback,context);};
-	document.getElementById('passwordPromptCancelBtn').onclick = function(){PasswordPrompt.cancel(callback,context);};
-    },     
- 	       
-  center : function(el){
-	var size = this.getsize(el);
-	el.style.left = (Math.round(findWindowWidth()/2) - (size.width /2) + findScrollX())+'px';
-	el.style.top = (Math.round(findWindowHeight()/2) - (size.height /2) + findScrollY())+'px';
-    },
- 	       
-  getsize : function (el){
-	var x = {};
-	x.width = el.offsetWidth || el.style.pixelWidth;
-	x.height = el.offsetHeight || el.style.pixelHeight;
-	return x;
-    },
- 	       
-  submit : function(cb,context){
-	context.passwordPrompt = document.getElementById('promptDisplayField').value;
-	context.password = document.getElementById('passwordInputField').value;
-	var box = document.getElementById('passwordPromptBox');
-	box.parentNode.removeChild(box);
-	cb(context);
-	return false;
-    },
+    prompt : function(callback,context){
+        if (!context) {
+            context = {};
+        }
+        var box = createTiddlyElement(document.getElementById("contentWrapper"),'div','passwordPromptBox');
+        box.innerHTML = store.getTiddlerText('PasswordPromptTemplate');
+        box.style.position = 'absolute';
+        this.center(box);
+        document.getElementById('promptDisplayField').value = context.passwordPrompt;
+        var passwordInputField = document.getElementById('passwordInputField');
+        passwordInputField.onkeyup = function(ev) {
+            var e = ev || window.event;
+            if(e.keyCode == 10 || e.keyCode == 13) { // Enter
+            PasswordPrompt.submit(callback, context);
+            }
+        };
+        passwordInputField.focus();
+        document.getElementById('passwordPromptSubmitBtn').onclick = function(){PasswordPrompt.submit(callback,context);};
+        document.getElementById('passwordPromptCancelBtn').onclick = function(){PasswordPrompt.cancel(callback,context);};
+        },  
+        
+    center : function(el){
+        var size = this.getsize(el);
+        el.style.left = (Math.round(findWindowWidth()/2) - (size.width /2) + findScrollX())+'px';
+        el.style.top = (Math.round(findWindowHeight()/2) - (size.height /2) + findScrollY())+'px';
+        },
+        
+    getsize : function (el){
+        var x = {};
+        x.width = el.offsetWidth || el.style.pixelWidth;
+        x.height = el.offsetHeight || el.style.pixelHeight;
+        return x;
+        },
+        
+    submit : function(cb,context){
+        context.passwordPrompt = document.getElementById('promptDisplayField').value;
+        context.password = document.getElementById('passwordInputField').value;
+        var box = document.getElementById('passwordPromptBox');
+        box.parentNode.removeChild(box);
+        cb(context);
+        return false;
+        },
 
-  cancel : function(cb,context){
-	var box = document.getElementById('passwordPromptBox');
-	box.parentNode.removeChild(box);
-	return false;
-    },
- 	       
-  setStyles : function(){
-	setStylesheet(
-	    "#passwordPromptBox dd.submit {margin-left:0; font-weight: bold; margin-top:1em;}\n"+
-	    "#passwordPromptBox dd.submit .button {padding:0.5em 1em; border:1px solid #ccc;}\n"+
-	    "#passwordPromptBox dt.heading {margin-bottom:0.5em; font-size:1.2em;}\n"+
-	    "#passwordPromptBox {border:1px solid #ccc;background-color: #eee;padding:1em 2em;}",'passwordPromptStyles');
-    },
- 	       
-  template : '<form action="" onsubmit="return false;" id="passwordPromptForm">\n'+
-  '    <dl>\n'+
-  '        <dt class="heading">Please enter the password:</dt>\n'+
-  '        <dt>Prompt:</dt>\n'+
-  '        <dd><input type="text" readonly id="promptDisplayField" class="display"/></dd>\n'+
-  '        <dt>Password:</dt>\n'+
-  '        <dd><input type="password" tabindex="1" class="input" id="passwordInputField"/></dd>\n'+
-  '        <dd class="submit">\n'+
-  '            <a tabindex="2" href="javascript:;" class="button" id="passwordPromptSubmitBtn">OK</a>\n'+
-  '            <a tabindex="3" href="javascript:;" class="button" id="passwordPromptCancelBtn">Cancel</a>\n'+
-  '        </dd>\n'+
-  '    </dl>\n'+
-  '</form>',
- 	                         
-  init : function(){
-	config.shadowTiddlers.PasswordPromptTemplate = this.template;
-	this.setStyles();
+    cancel : function(cb,context){
+        var box = document.getElementById('passwordPromptBox');
+        box.parentNode.removeChild(box);
+        return false;
+        },
+        
+    setStyles : function(){
+        setStylesheet(
+            "#passwordPromptBox dd.submit {margin-left:0; font-weight: bold; margin-top:1em;}\n"+
+            "#passwordPromptBox dd.submit .button {padding:0.5em 1em; border:1px solid #ccc;}\n"+
+            "#passwordPromptBox dt.heading {margin-bottom:0.5em; font-size:1.2em;}\n"+
+            "#passwordPromptBox {border:1px solid #ccc;background-color: #eee;padding:1em 2em;}",'passwordPromptStyles');
+        },
+        
+    template : '<form action="" onsubmit="return false;" id="passwordPromptForm">\n'+
+    '    <dl>\n'+
+    '        <dt class="heading">Please enter the password:</dt>\n'+
+    '        <dt>Prompt:</dt>\n'+
+    '        <dd><input type="text" readonly id="promptDisplayField" class="display"/></dd>\n'+
+    '        <dt>Password:</dt>\n'+
+    '        <dd><input type="password" tabindex="1" class="input" id="passwordInputField"/></dd>\n'+
+    '        <dd class="submit">\n'+
+    '            <a tabindex="2" href="javascript:;" class="button" id="passwordPromptSubmitBtn">OK</a>\n'+
+    '            <a tabindex="3" href="javascript:;" class="button" id="passwordPromptCancelBtn">Cancel</a>\n'+
+    '        </dd>\n'+
+    '    </dl>\n'+
+    '</form>',
+                        
+    init : function(){
+    config.shadowTiddlers.PasswordPromptTemplate = this.template;
+    this.setStyles();
     }
 };
- 	
+    
 PasswordPrompt.init();
 
 // supporting functions
@@ -697,7 +686,7 @@ function strToLongs(s) {  // convert string to array of longs, each containing 4
         // note little-endian encoding - endianness is irrelevant as long as 
         // it is the same in longsToStr() 
         l[i] = s.charCodeAt(i*4) + (s.charCodeAt(i*4+1)<<8) + 
-               (s.charCodeAt(i*4+2)<<16) + (s.charCodeAt(i*4+3)<<24);
+                 (s.charCodeAt(i*4+2)<<16) + (s.charCodeAt(i*4+3)<<24);
     }
     return l;  // note running off the end of the string generates nulls since 
 }              // bitwise operators treat NaN as 0
@@ -706,7 +695,7 @@ function longsToStr(l) {  // convert array of longs back to string
     var a = new Array(l.length);
     for (var i=0; i<l.length; i++) {
         a[i] = String.fromCharCode(l[i] & 0xFF, l[i]>>>8 & 0xFF, 
-                                   l[i]>>>16 & 0xFF, l[i]>>>24 & 0xFF);
+                                     l[i]>>>16 & 0xFF, l[i]>>>24 & 0xFF);
     }
     return a.join('');  // use Array.join() rather than repeated string appends for efficiency
 }
