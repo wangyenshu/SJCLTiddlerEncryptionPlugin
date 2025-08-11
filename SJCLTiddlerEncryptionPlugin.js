@@ -154,11 +154,17 @@ config.macros.EncryptionDecryptAll = {
 };
 
 config.macros.EncryptionDecryptThis = {
-    handler: function(place,macroName,params,wikifier,paramString,tiddler) {
+    onClickEncryptionDecryptThis: function() {
+        var theTiddler = this.getAttribute("theTiddler");
+        if(theTiddler) {
+            encryptionGetAndDecryptTiddler(theTiddler);
+        }
+    },
+    handler: function(place, macroName, params, wikifier, paramString, tiddler) {
         var theButton = createTiddlyButton(place,
             (params[0] && params[0].length > 0) ? params[0] : "Decrypt", 
             (params[1] && params[1].length > 0) ? params[1] : "Decrypt this Tiddler", 
-            onClickEncryptionDecryptThis,
+            this.onClickEncryptionDecryptThis,
             null,
             null,
             params[3]);
@@ -233,13 +239,6 @@ function MyChangePasswordPromptCallback_TiddlerEncryptionPlugin(context) {
     config.encryptionPasswords[context.passwordPrompt] = context.password;
     onClickEncryptionChangePassword(context.changePasswordPromptString);
 }
-// Called by the EncryptionDecryptThis macro/button
-function onClickEncryptionDecryptThis() {
-    var theTiddler = this.getAttribute("theTiddler");
-    if(theTiddler) {
-        encryptionGetAndDecryptTiddler(theTiddler);
-    }
-};
 
 function encryptionGetAndDecryptTiddler(title) {
     config.encryptionReEnterPasswords = true;
