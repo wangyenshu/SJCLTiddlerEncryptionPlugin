@@ -1,13 +1,12 @@
 /***
-|Name|SJCLTiddlerEncryptionPlugin|
-|Author|Yanshu Wang|
-|Source|https://github.com/wangyenshu/SJCLTiddlerEncryptionPlugin/blob/main/SJCLTiddlerEncryptionPlugin.js|
+|Name       |SJCLTiddlerEncryptionPlugin|
+|Description|Encrypt/Decrypt tiddlers with a password and SJCL library|
+|Author     |Lyall Pearce, Yanshu Wang|
+|Source |https://github.com/wangyenshu/SJCLTiddlerEncryptionPlugin/blob/main/SJCLTiddlerEncryptionPlugin.js|
 |License|[[Creative Commons Attribution-Share Alike 3.0 License|http://creativecommons.org/licenses/by-sa/3.0/]]|
 |Version|0.2|
 |~CoreVersion|2.4.0|
-|Requires|None|
 |Overrides|store.getSaver().externalizeTiddler(), store.getTiddler() and store.getTiddlerText()|
-|Description|Encrypt/Decrypt Tiddlers with a Password key|
 
 !!!!!Description
 This plugin is adapted from TiddlerEncryptionPlugin by Lyall Pearce (http://www.Remotely-Helpful.com/TiddlyWiki/TiddlerEncryptionPlugin.html). It uses Stanford Javascript Crypto Library (SJCL) instead of Tiny Encryption Algorithm in the original TiddlerEncryptionPlugin and the insecure SHA1 checksum is removed. 
